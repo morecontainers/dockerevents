@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+
+type jq docker tee redis-cli  || { echo 1>&2 "error: missing tools"; exit 1; }
+#[[ -S /var/run/docker.sock ]] || { echo 1>&2 "error: /var/run/docker.sock not connected"; exit 1; }
+
+docker events --format "{{ json . }}" | while :
+do
+	read -r payload
+	echo "$payload" | jq -cr ".Type, .Action" | (
+		read -r atype
+		read -r action
+		command="PUBLISH"
+		channel="docker.events.${atype}.${action}"
+		printf "*3\r\n\$%d\r\n%s\r\n\$%d\r\n%s\r\n\$%d\r\n%s\r\n" \
+		       ${#command} "${command}" \
+		       ${#channel} "${channel}" \
+		       ${#payload} "${payload}"
+	) | tee /dev/stderr
+done | redis-cli --pipe

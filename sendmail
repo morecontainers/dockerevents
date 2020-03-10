@@ -1,0 +1,30 @@
+#!/bin/sh
+# shellcheck disable=SC2086
+
+MAILFROM=${MAILFROM:-sendmail}
+SMTP_HOSTNAME=${SMTP_HOSTNAME:-smtp-relay.gmail.com}
+SMTP_USERNAME=${SMTP_USERNAME:-}
+SMTP_PASSWORD=${SMTP_PASSWORD:-}
+SMTP_STARTTLS=${SMTP_STARTTLS:-0}
+SMTP_PORT=${SMTP_PORT:-465}
+
+OPTIONS="-f $MAILFROM"
+
+if [ -n "$SMTP_USERNAME" ]
+then
+	OPTIONS="$OPTIONS -au${SMTP_USERNAME}"
+fi
+
+if [ -n "$SMTP_PASSWORD" ]
+then
+	OPTIONS="$OPTIONS -ap${SMTP_PASSWORD}"
+fi
+
+SMTP_HOST="$SMTP_HOSTNAME:$SMTP_PORT"
+
+if [ -n "$SMTP_STARTTLS" ] && [ "$SMTP_STARTTLS" -ne 0 ]
+then
+	exec /usr/sbin/sendmail $OPTIONS -H "openssl s_client -quiet -tls1 -starttls smtp -connect $SMTP_HOST" "$@"
+else
+	exec /usr/sbin/sendmail $OPTIONS -H "openssl s_client -quiet -tls1                -connect $SMTP_HOST" "$@"
+fi

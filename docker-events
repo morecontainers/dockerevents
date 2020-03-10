@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -e
+
+type jq docker tee            || { echo 1>&2 "error: missing tools"; exit 1; }
+#[[ -S /var/run/docker.sock ]] || { echo 1>&2 "error: /var/run/docker.sock not connected"; exit 1; }
+
+docker events --format "{{ json . }}" | while :
+do
+	read -r payload
+	echo "$payload" | jq -cr ".Type, .Action" | (
+		read -r atype
+		read -r action
+		HANDLER="$(PATH=/etc/events.d:/usr/local/etc/events.d type -p ${atype}.${action})"
+		if [ -x "$HANDLER" ]
+		then
+			echo "$payload" | "$HANDLER"
+		fi
+	) | tee /dev/stderr
+done 
