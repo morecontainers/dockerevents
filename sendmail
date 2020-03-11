@@ -5,8 +5,10 @@ MAILFROM=${MAILFROM:-sendmail}
 SMTP_HOSTNAME=${SMTP_HOSTNAME:-smtp-relay.gmail.com}
 SMTP_USERNAME=${SMTP_USERNAME:-}
 SMTP_PASSWORD=${SMTP_PASSWORD:-}
+SMTP_TLS=${SMTP_TLS:-1}
 SMTP_STARTTLS=${SMTP_STARTTLS:-0}
-SMTP_PORT=${SMTP_PORT:-465}
+SMTP_PORT=${SMTP_PORT:-25}
+SMTP_TLS_PORT=${SMTP_TLS_PORT:-465}
 
 OPTIONS="-f $MAILFROM"
 
@@ -20,11 +22,14 @@ then
 	OPTIONS="$OPTIONS -ap${SMTP_PASSWORD}"
 fi
 
-SMTP_HOST="$SMTP_HOSTNAME:$SMTP_PORT"
-
-if [ -n "$SMTP_STARTTLS" ] && [ "$SMTP_STARTTLS" -ne 0 ]
+if [ -z "$SMTP_TLS" ] || [ "$SMTP_TLS" == 0 ]
 then
-	exec /usr/sbin/sendmail $OPTIONS -H "openssl s_client -quiet -tls1 -starttls smtp -connect $SMTP_HOST" "$@"
+	OPTIONS="$OPTIONS -S $SMTP_HOSTNAME:$SMTP_PORT"
+elif [ -n "$SMTP_STARTTLS" ] && [ "$SMTP_STARTTLS" -ne 0 ]
+then
+	OPTIONS="$OPTIONS -H \"openssl s_client -quiet -tls1 -starttls smtp -connect $SMTP_HOSTNAME:$SMTP_TLS_PORT\""
 else
-	exec /usr/sbin/sendmail $OPTIONS -H "openssl s_client -quiet -tls1                -connect $SMTP_HOST" "$@"
+	OPTIONS="$OPTIONS -H \"openssl s_client -quiet -tls1                -connect $SMTP_HOSTNAME:$SMTP_TLS_PORT\""
 fi
+
+exec /usr/sbin/sendmail $OPTIONS "$@"
