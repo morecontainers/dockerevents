@@ -28,7 +28,6 @@ then
 elif [ -n "$SMTP_STARTTLS" ] && [ ! "$SMTP_STARTTLS" = 0 ]
 then
 	exec /usr/sbin/sendmail $OPTIONS -H "openssl s_client -quiet -tls1 -starttls smtp -connect $SMTP_HOSTNAME:$SMTP_TLS_PORT" "$@"
-
 else
 	exec /usr/sbin/sendmail $OPTIONS -H "openssl s_client -quiet -tls1                -connect $SMTP_HOSTNAME:$SMTP_TLS_PORT" "$@"
 fi
